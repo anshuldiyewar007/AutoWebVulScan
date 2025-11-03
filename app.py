@@ -12,6 +12,11 @@ app = Flask(__name__)
 CORS(app)
 
 
+@app.route('/')
+def index():
+    """Render the main UI"""
+    return render_template('index.html')
+
 @app.route('/api/scan', methods=['POST'])
 def scan():
     """API endpoint to run vulnerability scan"""

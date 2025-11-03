@@ -1,0 +1,238 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Auto Web Vulnerability Scanner</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <meta name="color-scheme" content="light dark">
+</head>
+<body class="bg-gray-50 text-gray-900">
+    <div class="min-h-screen">
+        <header class="bg-white border-b">
+            <div class="max-w-6xl mx-auto px-4 py-4 flex items-center justify-between">
+                <h1 class="text-xl font-semibold">Auto Web Vulnerability Scanner</h1>
+                <span class="text-sm text-gray-500">Flask + Tailwind</span>
+            </div>
+        </header>
+
+        <main class="max-w-6xl mx-auto px-4 py-6">
+            <section class="bg-white border rounded-lg p-4 md:p-6 shadow-sm">
+                <div class="grid md:grid-cols-5 gap-4 items-end">
+                    <div class="md:col-span-3">
+                        <label for="url" class="block text-sm font-medium text-gray-700">Target URL</label>
+                        <input id="url" type="text" placeholder="https://example.com"
+                               class="mt-1 w-full rounded-md border-gray-300 focus:border-indigo-500 focus:ring-indigo-500 px-3 py-2" />
+                    </div>
+                    <div>
+                        <label for="timeout" class="block text-sm font-medium text-gray-700">Timeout (s)</label>
+                        <input id="timeout" type="number" min="3" max="60" value="10"
+                               class="mt-1 w-full rounded-md border-gray-300 focus:border-indigo-500 focus:ring-indigo-500 px-3 py-2" />
+                    </div>
+                    <div class="flex md:block">
+                        <button id="scanBtn"
+                                class="w-full inline-flex items-center justify-center rounded-md bg-indigo-600 hover:bg-indigo-700 text-white font-medium px-4 py-2.5 disabled:opacity-60 disabled:cursor-not-allowed">
+                            <svg id="spinner" class="hidden animate-spin -ml-1 mr-2 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                                <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                                <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z"></path>
+                            </svg>
+                            <span id="btnText">Run Scan</span>
+                        </button>
+                    </div>
+                </div>
+                <p class="text-xs text-gray-500 mt-2">Only scan targets you own or have permission to test.</p>
+                <div id="error" class="hidden mt-3 rounded border border-red-200 bg-red-50 text-red-700 px-3 py-2 text-sm"></div>
+            </section>
+
+            <section id="resultsSection" class="hidden mt-6 space-y-6">
+                <div class="bg-white border rounded-lg p-4 md:p-6 shadow-sm">
+                    <h2 class="text-lg font-semibold mb-4">Summary</h2>
+                    <div id="summary" class="grid sm:grid-cols-2 lg:grid-cols-4 gap-4"></div>
+                </div>
+
+                <div class="bg-white border rounded-lg p-4 md:p-6 shadow-sm">
+                    <h2 class="text-lg font-semibold mb-3">Vulnerabilities</h2>
+                    <div id="vulns" class="space-y-3"></div>
+                </div>
+
+                <div class="bg-white border rounded-lg p-4 md:p-6 shadow-sm">
+                    <h2 class="text-lg font-semibold mb-3">Security Headers</h2>
+                    <div class="overflow-x-auto">
+                        <table class="min-w-full text-sm">
+                            <thead>
+                                <tr class="text-left text-gray-600">
+                                    <th class="py-2 pr-6">Header</th>
+                                    <th class="py-2">Value</th>
+                                </tr>
+                            </thead>
+                            <tbody id="headers"></tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <div class="grid md:grid-cols-2 gap-6">
+                    <div class="bg-white border rounded-lg p-4 md:p-6 shadow-sm">
+                        <h2 class="text-lg font-semibold mb-3">Sensitive Files</h2>
+                        <div id="sensitive" class="space-y-2 text-sm"></div>
+                    </div>
+                    <div class="bg-white border rounded-lg p-4 md:p-6 shadow-sm">
+                        <h2 class="text-lg font-semibold mb-3">Information Disclosure</h2>
+                        <div id="info" class="space-y-2 text-sm"></div>
+                    </div>
+                </div>
+
+                <div class="grid md:grid-cols-3 gap-6">
+                    <div class="bg-white border rounded-lg p-4 md:p-6 shadow-sm">
+                        <h2 class="text-lg font-semibold mb-3">SQL Injection</h2>
+                        <div id="sql" class="space-y-2 text-sm"></div>
+                    </div>
+                    <div class="bg-white border rounded-lg p-4 md:p-6 shadow-sm">
+                        <h2 class="text-lg font-semibold mb-3">XSS</h2>
+                        <div id="xss" class="space-y-2 text-sm"></div>
+                    </div>
+                    <div class="bg-white border rounded-lg p-4 md:p-6 shadow-sm">
+                        <h2 class="text-lg font-semibold mb-3">CSRF</h2>
+                        <div id="csrf" class="space-y-2 text-sm"></div>
+                    </div>
+                </div>
+            </section>
+        </main>
+    </div>
+
+    <script>
+        const el = (id) => document.getElementById(id);
+        const scanBtn = el('scanBtn');
+        const spinner = el('spinner');
+        const btnText = el('btnText');
+        const resultsSection = el('resultsSection');
+        const errorBox = el('error');
+
+        function setLoading(isLoading) {
+            scanBtn.disabled = isLoading;
+            spinner.classList.toggle('hidden', !isLoading);
+            btnText.textContent = isLoading ? 'Scanning…' : 'Run Scan';
+        }
+
+        function badge(sev) {
+            const map = {
+                'Critical': 'bg-red-100 text-red-800 border-red-200',
+                'High': 'bg-orange-100 text-orange-800 border-orange-200',
+                'Medium': 'bg-amber-100 text-amber-800 border-amber-200',
+                'Low': 'bg-green-100 text-green-800 border-green-200'
+            };
+            return map[sev] || 'bg-gray-100 text-gray-800 border-gray-200';
+        }
+
+        function renderSummary(data) {
+            const counts = { Critical: 0, High: 0, Medium: 0, Low: 0 };
+            (data.vulnerabilities || []).forEach(v => counts[v.severity] = (counts[v.severity]||0)+1);
+            el('summary').innerHTML = `
+                ${Object.entries(counts).map(([k,v]) => `
+                    <div class="border rounded-md p-3">
+                        <div class="text-xs text-gray-500">${k}</div>
+                        <div class="text-2xl font-semibold">${v}</div>
+                    </div>
+                `).join('')}
+            `;
+        }
+
+        function renderVulns(vulns) {
+            if (!vulns || vulns.length === 0) {
+                el('vulns').innerHTML = '<div class="text-sm text-gray-500">No vulnerabilities found.</div>';
+                return;
+            }
+            el('vulns').innerHTML = vulns.map(v => `
+                <div class="border rounded-md p-3">
+                    <div class="flex items-center justify-between">
+                        <div class="font-medium">${v.type}</div>
+                        <span class="text-xs border px-2 py-0.5 rounded ${badge(v.severity)}">${v.severity}</span>
+                    </div>
+                    <div class="text-sm text-gray-700 mt-1">${v.description}</div>
+                    ${v.details
+                        ? (() => {
+                            const { description, ...rest } = v.details || {};
+                            const descHtml = description ? `<div class=\"text-sm text-gray-600 mt-2\">${description}</div>` : '';
+                            const restKeys = Object.keys(rest || {});
+                            const restHtml = restKeys.length
+                                ? `<pre class=\"mt-2 bg-gray-50 border rounded p-2 text-xs overflow-x-auto\">${JSON.stringify(rest, null, 2)}</pre>`
+                                : '';
+                            return `${descHtml}${restHtml}`;
+                        })()
+                        : ''}
+                </div>
+            `).join('');
+        }
+
+        function renderHeaders(headers) {
+            const entries = Object.entries(headers || {});
+            if (entries.length === 0) { el('headers').innerHTML = ''; return; }
+            el('headers').innerHTML = entries.map(([k, v]) => `
+                <tr>
+                    <td class="py-2 pr-6 align-top font-medium">${k}</td>
+                    <td class="py-2 align-top ${v ? '' : 'text-gray-500'}">${v ? `<code class="text-xs">${v}</code>` : '<span class="text-xs">Missing</span>'}</td>
+                </tr>
+            `).join('');
+        }
+
+        function renderList(id, items) {
+            const container = el(id);
+            if (!items || items.length === 0) {
+                container.innerHTML = '<div class="text-sm text-gray-500">None.</div>';
+                return;
+            }
+            container.innerHTML = items.map(it => `
+                <div class="border rounded p-2">
+                    <pre class="text-xs overflow-x-auto">${typeof it === 'string' ? it : JSON.stringify(it, null, 2)}</pre>
+                </div>
+            `).join('');
+        }
+
+        async function runScan() {
+            errorBox.classList.add('hidden');
+            const url = el('url').value.trim();
+            const timeout = parseInt(el('timeout').value || '10', 10);
+            if (!url) {
+                errorBox.textContent = 'Please enter a target URL.';
+                errorBox.classList.remove('hidden');
+                return;
+            }
+            setLoading(true);
+            try {
+                const res = await fetch('/api/scan', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ url, timeout })
+                });
+                const data = await res.json();
+                if (!res.ok || !data.success) {
+                    throw new Error(data.error || 'Scan failed');
+                }
+                const results = data.results || {};
+                resultsSection.classList.remove('hidden');
+                renderSummary(results);
+                renderVulns(results.vulnerabilities);
+                renderHeaders(results.security_headers);
+                renderList('sensitive', results.sensitive_files);
+                renderList('sql', results.sql_injection);
+                renderList('xss', results.xss_vulnerabilities);
+                renderList('csrf', results.csrf_vulnerabilities);
+                renderList('info', results.information_disclosure);
+            } catch (e) {
+                errorBox.textContent = e.message || String(e);
+                errorBox.classList.remove('hidden');
+            } finally {
+                setLoading(false);
+            }
+        }
+
+        scanBtn.addEventListener('click', runScan);
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter' && document.activeElement && ['url','timeout'].includes(document.activeElement.id)) {
+                runScan();
+            }
+        });
+    </script>
+</body>
+</html>
+
+
