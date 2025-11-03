@@ -1,0 +1,76 @@
+{
+  "target": "https://paisa-trackr.vercel.app/",
+  "vulnerabilities": [
+    {
+      "severity": "Medium",
+      "type": "Missing Security Header",
+      "description": "Missing X-Frame-Options header",
+      "details": {
+        "description": "Prevents clickjacking attacks"
+      }
+    },
+    {
+      "severity": "Medium",
+      "type": "Missing Security Header",
+      "description": "Missing X-Content-Type-Options header",
+      "details": {
+        "description": "Prevents MIME type sniffing"
+      }
+    },
+    {
+      "severity": "Medium",
+      "type": "Missing Security Header",
+      "description": "Missing X-XSS-Protection header",
+      "details": {
+        "description": "Enables XSS filtering"
+      }
+    },
+    {
+      "severity": "Medium",
+      "type": "Missing Security Header",
+      "description": "Missing Content-Security-Policy header",
+      "details": {
+        "description": "Controls resource loading"
+      }
+    },
+    {
+      "severity": "Medium",
+      "type": "Missing Security Header",
+      "description": "Missing Referrer-Policy header",
+      "details": {
+        "description": "Controls referrer information"
+      }
+    },
+    {
+      "severity": "Medium",
+      "type": "Missing Security Header",
+      "description": "Missing Permissions-Policy header",
+      "details": {
+        "description": "Controls browser features"
+      }
+    },
+    {
+      "severity": "Low",
+      "type": "Information Disclosure",
+      "description": "Server header reveals: Vercel",
+      "details": {
+        "header": "Server",
+        "value": "Vercel"
+      }
+    }
+  ],
+  "security_headers": {
+    "X-Frame-Options": null,
+    "X-Content-Type-Options": null,
+    "X-XSS-Protection": null,
+    "Strict-Transport-Security": "max-age=63072000; includeSubDomains; preload",
+    "Content-Security-Policy": null,
+    "Referrer-Policy": null,
+    "Permissions-Policy": null
+  },
+  "sensitive_files": [],
+  "sql_injection": [],
+  "xss_vulnerabilities": [],
+  "csrf_vulnerabilities": [],
+  "information_disclosure": []
+}
